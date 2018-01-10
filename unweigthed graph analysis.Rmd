@@ -1,0 +1,124 @@
+---
+title: "Yelp Reviewer Social Network Analysis"
+author: "Apoorva Havanur, ahavanur"
+date: "1/10/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(sqldf)
+library(scatterplot3d)
+```
+
+This project attempts to learn more about the behavior of yelp reviews and how it becomes influenced by their social network. 
+
+```{r}
+influence.data = read.csv("influence_small.csv")
+```
+The two primary measures we are looking at in this section are influenced and influencer scores. \newline 
+'Influenced' scores is the percentage of a user's reviews of a business that came *after* one of their friends on yelp reviewed the same business, i.e they went to that business due to a friend's influence.  
+\newline 
+'Influencer' scores is the percentage of a user's reviews of a business that came *before* one of their friends on yelp reviewed the same business, i.e they influenced one of their friends to go. 
+
+Influence Score Histograms and EDA
+```{r}
+hist(influence.data$influenced_score, main = "Influenced Score")
+hist(influence.data$influencer_score, main = "Influencer Score")
+```
+```{r}
+summary(influence.data$influenced_score)
+summary(influence.data$influencer_score)
+summary(influence.data$total_friends)
+summary(influence.data$total_reviews)
+```
+```{r}
+plot(influence.data$influenced_score, influence.data$influencer_score, main = "Influenced vs. Influencer Scores", xlab = "Influenced Score", ylab = "Influencer Score")
+plot(influence.data$total_friends, influence.data$total_reviews, main = "Friends vs. Reviews", xlab = "User's Number of Friends", ylab = "User's Number of Reviews")
+```
+
+Removing Outliers
+We take out the folks with the highest friends and largest number of reviews
+```{r}
+p99friends = influence.data[which(influence.data$total_friends <= quantile(influence.data$total_friends, seq(0,1,0.01))[100]),]
+p99reviews = influence.data[which(influence.data$total_reviews <= quantile(influence.data$total_reviews, seq(0,1,0.01))[100]),]
+```
+
+Aggregating Data by Friends and Reviews
+```{r}
+score_by_friends = sqldf("SELECT total_friends, AVG(influenced_score) as influenced_score, AVG(influencer_score) as influencer_score, COUNT(1) as num FROM p99friends GROUP BY 1")
+score_by_reviews = sqldf("SELECT total_reviews, AVG(influenced_score) as influenced_score, AVG(influencer_score) as influencer_score, COUNT(1) as num FROM p99reviews GROUP BY 1")
+```
+
+```{r}
+lin.reg.friends.influenced = lm(score_by_friends$influenced_score ~ score_by_friends$total_friends)
+plot(score_by_friends$total_friends, score_by_friends$influenced_score, main = "Influenced Score by Number of Friends", xlab = "Friends", ylab = "Influenced Score", pch = 20)
+abline(lin.reg.friends.influenced, col = "red")
+summary(lin.reg.friends.influenced)
+```
+
+```{r}
+lin.reg.friends.influencer = lm(score_by_friends$influencer_score ~ score_by_friends$total_friends)
+plot(score_by_friends$total_friends, score_by_friends$influencer_score, main = "Influencer Score by Number of Friends", xlab = "Friends", ylab = "Influencer Score", pch = 20)
+abline(lin.reg.friends.influencer, col = "red")
+summary(lin.reg.friends.influencer)
+```
+
+```{r}
+s3d = scatterplot3d(score_by_friends$total_friends, score_by_friends$influenced_score, score_by_friends$influencer_score,
+              main = "Influenced vs Influencer Score Across Friend Count", xlab = "Number of Friends", ylab = "Influenced Score", zlab = "Influencer Score", type = "h", pch = 20, angle = 40)
+```
+
+
+```{r}
+lin.reg.reviews.influenced = lm(score_by_reviews$influenced_score ~ score_by_reviews$total_reviews)
+plot(score_by_reviews$total_reviews, score_by_reviews$influenced_score, main = "Influenced Score by Number of Reviews", xlab = "Reviews", ylab = "Influenced Score", pch = 20)
+abline(lin.reg.reviews.influenced, col = "red")
+summary(lin.reg.reviews.influenced)
+```
+
+```{r}
+lin.reg.reviews.influencer = lm(score_by_reviews$influencer_score ~ score_by_reviews$total_reviews)
+plot(score_by_reviews$total_reviews, score_by_reviews$influencer_score, main = "Influencer Score by Number of Reviews", xlab = "Reviews", ylab = "Influencer Score", pch = 20)
+abline(lin.reg.reviews.influencer, col = "red")
+summary(lin.reg.reviews.influencer)
+```
+
+```{r}
+s3dr = scatterplot3d(score_by_reviews$total_reviews, score_by_reviews$influenced_score, score_by_reviews$influencer_score,
+              main = "Influenced vs Influencer Score Across Review Count", xlab = "Number of Reviews", ylab = "Influenced Score", zlab = "Influencer Score", type = "h", pch = 20)
+```
+
+
+
+
+Creating Cumulative Distributions 
+```{r}
+score_by_friends$cummulative_influenced = cumsum(score_by_friends$influenced_score*score_by_friends$num)/cumsum(score_by_friends$num)
+score_by_friends$cummulative_influencer = cumsum(score_by_friends$influencer_score*score_by_friends$num)/cumsum(score_by_friends$num)
+
+score_by_reviews$cummulative_influenced = cumsum(score_by_reviews$influenced_score*score_by_reviews$num)/cumsum(score_by_reviews$num)
+score_by_reviews$cummulative_influencer = cumsum(score_by_reviews$influencer_score*score_by_reviews$num)/cumsum(score_by_reviews$num)
+```
+
+```{r}
+plot(score_by_friends$total_friends, score_by_friends$cummulative_influenced, main="Cumulative Influenced Score Over Number of Friends", xlab = "Cumulative Friend Count",ylab = "Average Influenced Score", pch = 20)
+plot(score_by_friends$total_friends, score_by_friends$cummulative_influencer, main="Cumulative Influencer Score Over Number of Friends", xlab = "Cumulative Friend Count",ylab = "Average Influencer Score", pch = 20)
+plot(score_by_reviews$total_reviews, score_by_reviews$cummulative_influenced, main="Cumulative Influenced Score Over Number of Reviews", xlab = "Cumulative Review Count",ylab = "Average Influenced Score", pch = 20)
+plot(score_by_reviews$total_reviews, score_by_reviews$cummulative_influencer, main="Cumulative Influencer Score Over Number of Reviews", xlab = "Cumulative Review Count",ylab = "Average Influencer Score", pch = 20)
+```
+
+```{r}
+s3d3 = scatterplot3d(score_by_friends$total_friends, score_by_friends$cummulative_influenced, score_by_friends$cummulative_influencer,
+              main = "Cumulative Influenced vs Influencer Score Across Friend Count", xlab = "Cumulative Number of Friends", ylab = "Avg. Influenced Score", zlab = "Avg. Influencer Score", pch = 20, angle = 40)
+fit = lm(score_by_friends$cummulative_influencer ~ score_by_friends$total_friends+ score_by_friends$cummulative_influenced)
+s3d3$plane3d(fit)
+```
+
+```{r}
+s3d4 = scatterplot3d(score_by_reviews$total_reviews, score_by_reviews$cummulative_influenced, score_by_reviews$cummulative_influencer,
+              main = "Cumulative Influenced vs Influencer Score Across Review Count", xlab = "Cumulative Number of Friends", ylab = "Avg. Influenced Score", zlab = "Avg. Influencer Score", pch = 20, angle = 40)
+fit = lm(score_by_reviews$cummulative_influencer ~ score_by_reviews$total_reviews+ score_by_reviews$cummulative_influenced)
+s3d4$plane3d(fit)
+```
+

@@ -1,0 +1,157 @@
+mysql -e 'select * from yelp_db.friend' | sed  's/\t/,/g' > friends_small.tsv
+
+(*Pitt businesses*)
+SELECT COUNT(1) as num_businesses FROM (SELECT id, name, stars, review_count FROM business WHERE city = "Pittsburgh" and state = "PA") a; 
+
+(* reviews of those businesses*)
+SELECT r.id, r.stars, r.date, r.business_id, r.user_id, b.name, b.stars FROM review r INNER JOIN (SELECT id, name, stars, review_count FROM business WHERE city = "Pittsburgh" and state = "PA") b ON r.business_id = b.id;
+
+SELECT DISTINCT reviewers.user_id FROM (SELECT r.id, r.stars, r.date, r.business_id, r.user_id, b.name, b.stars as total_stars FROM review r INNER JOIN (SELECT id, name, stars, review_count FROM business WHERE city = "Pittsburgh" and state = "PA") b ON r.business_id = b.id) reviewers;
+
+(* reviewer friends *)
+SELECT user_id, friend_id FROM friend WHERE user_id IN (SELECT DISTINCT reviewers.user_id FROM (SELECT r.id, r.stars, r.date, r.business_id, r.user_id, b.name, b.stars as total_stars FROM review r INNER JOIN (SELECT id, name, stars, review_count FROM business WHERE city = "Pittsburgh" and state = "PA") b ON r.business_id = b.id) reviewers);
+
+(*User in Pittsburgh*)
+mysql -e 'SELECT user_id, friend_id FROM yelp_db.friend WHERE user_id IN (SELECT DISTINCT reviewers.user_id FROM (SELECT r.id, r.stars, r.date, r.business_id, r.user_id, b.name, b.stars as total_stars FROM yelp_db.review r INNER JOIN (SELECT id, name, stars, review_count FROM yelp_db.business WHERE city = "Pittsburgh" and state = "PA") b ON r.business_id = b.id) reviewers);' | sed  's/\t/,/g' > friends_pittsburgh_big.tsv
+
+
+(*User and Friend in Pittsburgh*)
+mysql -e 'SELECT user_id, friend_id FROM yelp_db.friend WHERE user_id IN (SELECT DISTINCT reviewers.user_id FROM (SELECT r.id, r.stars, r.date, r.business_id, r.user_id, b.name, b.stars as total_stars FROM yelp_db.review r INNER JOIN (SELECT id, name, stars, review_count FROM yelp_db.business WHERE city = "Pittsburgh" and state = "PA") b ON r.business_id = b.id) reviewers) AND friend_id in (SELECT DISTINCT reviewers2.user_id FROM (SELECT r.id, r.stars, r.date, r.business_id, r.user_id, b.name, b.stars as total_stars FROM yelp_db.review r INNER JOIN (SELECT id, name, stars, review_count FROM yelp_db.business WHERE city = "Pittsburgh" and state = "PA") b ON r.business_id = b.id) reviewers2);' | sed  's/\t/,/g' > friends_pittsburgh.tsv
+
+UPDATE mysql.user SET PASSWORD=PASSWORD('Runavah321') WHERE USER='root';
+
+
+SELECT `COLUMN_NAME` 
+FROM `INFORMATION_SCHEMA`.`COLUMNS` 
+WHERE `TABLE_SCHEMA`='mysql' 
+    AND `TABLE_NAME`='user';
+
+mysql -e "SELECT id, user_id, date INTO OUTFILE 'reviews_pittsburgh.csv' FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' LINES TERMINATED BY '\n' FROM (SELECT business.id as id, user_id, date, city, state FROM yelp_db.review LEFT OUTER JOIN yelp_db.business ON review.business_id = business.id) a WHERE a.city = 'Pittsburgh' and a.state = 'PA' "
+
+
+SELECT user_id, friend_id 
+INTO OUTFILE 'pittsburgh_friends.csv' 
+FIELDS TERMINATED BY ',' 
+OPTIONALLY ENCLOSED BY '"' 
+LINES TERMINATED BY '\n' 
+FROM yelp_db.friend 
+	WHERE user_id IN 
+		(SELECT DISTINCT 
+			reviewers.user_id 
+			FROM 
+				(SELECT 
+				r.id, 
+				r.stars, 
+				r.date, 
+				r.business_id, 
+				r.user_id, 
+				b.name, 
+				b.stars as total_stars 
+					FROM yelp_db.review r INNER JOIN 
+					(SELECT 
+						id, 
+						name, 
+						stars, 
+						review_count 
+					FROM yelp_db.business 
+					WHERE city = "Pittsburgh" and state = "PA") b 
+					ON r.business_id = b.id) reviewers);
+
+
+SELECT user_id, friend_id 
+INTO OUTFILE 'pittsburgh_only_friends.csv' 
+FIELDS TERMINATED BY ',' 
+OPTIONALLY ENCLOSED BY '"' 
+LINES TERMINATED BY '\n' 
+FROM yelp_db.friend 
+	WHERE user_id IN 
+		(SELECT DISTINCT 
+			reviewers.user_id 
+			FROM 
+				(SELECT 
+				r.id, 
+				r.stars, 
+				r.date, 
+				r.business_id, 
+				r.user_id, 
+				b.name, 
+				b.stars as total_stars 
+					FROM yelp_db.review r INNER JOIN 
+					(SELECT 
+						id, 
+						name, 
+						stars, 
+						review_count 
+					FROM yelp_db.business 
+					WHERE city = "Pittsburgh" and state = "PA") b 
+					ON r.business_id = b.id) reviewers)
+	AND friend_id IN
+		(SELECT DISTINCT 
+			reviewers.user_id 
+			FROM 
+				(SELECT 
+				r.id, 
+				r.stars, 
+				r.date, 
+				r.business_id, 
+				r.user_id, 
+				b.name, 
+				b.stars as total_stars 
+					FROM yelp_db.review r INNER JOIN 
+					(SELECT 
+						id, 
+						name, 
+						stars, 
+						review_count 
+					FROM yelp_db.business 
+					WHERE city = "Pittsburgh" and state = "PA") b 
+					ON r.business_id = b.id) reviewers);
+
+SELECT user_id, friend_id 
+INTO OUTFILE 'new_york_friends.csv' 
+FIELDS TERMINATED BY ',' 
+OPTIONALLY ENCLOSED BY '"' 
+LINES TERMINATED BY '\n' 
+FROM yelp_db.friend 
+	WHERE user_id IN 
+		(SELECT DISTINCT 
+			reviewers.user_id 
+			FROM 
+				(SELECT 
+				r.id, 
+				r.stars, 
+				r.date, 
+				r.business_id, 
+				r.user_id, 
+				b.name, 
+				b.stars as total_stars 
+					FROM yelp_db.review r INNER JOIN 
+					(SELECT 
+						id, 
+						name, 
+						stars, 
+						review_count 
+					FROM yelp_db.business 
+					WHERE city = "New York City" and state = "NY") b 
+					ON r.business_id = b.id) reviewers)
+	AND friend_id IN
+		(SELECT DISTINCT 
+			reviewers.user_id 
+			FROM 
+				(SELECT 
+				r.id, 
+				r.stars, 
+				r.date, 
+				r.business_id, 
+				r.user_id, 
+				b.name, 
+				b.stars as total_stars 
+					FROM yelp_db.review r INNER JOIN 
+					(SELECT 
+						id, 
+						name, 
+						stars, 
+						review_count 
+					FROM yelp_db.business 
+					WHERE city = "New York City" and state = "NY") b 
+					ON r.business_id = b.id) reviewers);

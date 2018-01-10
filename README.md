@@ -1,2 +1,2 @@
 # yelp-networks
-Economics Senior Thesis
+economics senior thesis project

@@ -28,3 +28,34 @@ score_by_reviews$cummulative_influencer = cumsum(score_by_reviews$influencer_sco
 
 plot(score_by_reviews$total_reviews, score_by_reviews$cummulative_influenced)
 plot(score_by_reviews$total_reviews, score_by_reviews$cummulative_influencer)
+
+comp = read.csv("component_lengths.csv")
+View(comp)
+sum(comp)
+
+
+new = read.csv("new_influence_score_pittsburgh.csv")
+business_categories = read.csv("business_categories_pittsburgh.csv")
+elite_members = read.csv("pittsburgh_elites.csv")
+new$mu1 = new$f2/(new$f2+new$f3)
+new$mu2 = new$n/(new$n+new$k)
+View(new)
+plot(new$mu1, new$mu2)
+library(sqldf)
+new_by_user = sqldf("SELECT user_id, AVG(mu1) as mu1, AVG(mu2) as mu2 FROM new GROUP BY 1")
+new_by_user_raw = sqldf("SELECT user_id, SUM(f1) as f1, SUM(f2) as f2, SUM(f3) as f3, SUM(m) as m, SUM(n) as n, SUM(k) as k FROM new GROUP BY 1")
+new_by_user_raw$mu1 = new_by_user_raw$f2/(new_by_user_raw$f2 + new_by_user_raw$f3)
+new_by_user_raw$mu2 = new_by_user_raw$n/(new_by_user_raw$n + new_by_user_raw$k)
+new_by_user_raw$is_elite = as.numeric(new_by_user_raw$user_id %in% unique(elite_members$user_id))
+
+plot(new_by_user$mu1, new_by_user$mu2)
+plot(new_by_user_raw$mu1, new_by_user_raw$mu2)
+
+new_by_business = sqldf("SELECT business_id, AVG(mu1) as mu1, AVG(mu2) as mu2 FROM new GROUP BY 1")
+new_by_business_raw = sqldf("SELECT business_id, SUM(f1) as f1, SUM(f2) as f2, SUM(f3) as f3, SUM(m) as m, SUM(n) as n, SUM(k) as k FROM new GROUP BY 1")
+
+new_by_business_raw$mu1 = new_by_business_raw$f2/(new_by_business_raw$f2 + new_by_business_raw$f3)
+new_by_business_raw$mu2 = new_by_business_raw$n/(new_by_business_raw$n + new_by_business_raw$k)
+plot(new_by_business$mu1, new_by_business$mu2)
+business_categories = read.csv("business_categories_pittsburgh.csv")
+elite_members = read.csv("pittsburgh_elites.csv")

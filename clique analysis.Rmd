@@ -1,0 +1,31 @@
+---
+title: "Yelp Business Clique Analysis"
+author: "Apoorva Havanur, ahavanur"
+date: "1/11/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(sqldf)
+```
+
+Script to analyze the reviewers of a yelp business, and how many of them know each other.
+```{r}
+clique.data = read.csv("outputs/clique/clique_pittsburgh.csv")
+clique.data = clique.data
+p99reviewers =  clique.data[which(clique.data$reviewers <= quantile(clique.data$reviewers, seq(0,1,0.01))[100]),]
+hist(clique.data$cliqueness)
+summary(clique.data$cliqueness)
+plot(clique.data$reviewers, clique.data$cliqueness, pch = 20)
+```
+
+```{r}
+clique_by_reviews = sqldf("SELECT reviewers, AVG(cliqueness) as cliqueness, COUNT(1) as num FROM p99reviewers GROUP BY 1")
+plot(clique_by_reviews$reviewers, clique_by_reviews$cliqueness)
+```
+```{r}
+clique_by_reviews$cummulative_cliqueness = cumsum(clique_by_reviews$cliqueness*clique_by_reviews$num)/cumsum(clique_by_reviews$num)
+plot(clique_by_reviews$reviewers, clique_by_reviews$cummulative_cliqueness, pch = 20)
+```
+

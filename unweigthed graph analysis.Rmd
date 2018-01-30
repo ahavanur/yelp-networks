@@ -14,7 +14,9 @@ library(scatterplot3d)
 This project attempts to learn more about the behavior of yelp reviews and how it becomes influenced by their social network. 
 
 ```{r}
-influence.data = read.csv("influence_small.csv")
+influence.data = read.csv("outputs/influence/influence_pittsburgh.csv")
+elite_users = read.csv("pittsburgh_elites.csv")
+business_categories = read.csv("business_categories_pittsburgh.csv")
 ```
 The two primary measures we are looking at in this section are influenced and influencer scores. \newline 
 'Influenced' scores is the percentage of a user's reviews of a business that came *after* one of their friends on yelp reviewed the same business, i.e they went to that business due to a friend's influence.  
@@ -26,12 +28,14 @@ Influence Score Histograms and EDA
 hist(influence.data$influenced_score, main = "Influenced Score")
 hist(influence.data$influencer_score, main = "Influencer Score")
 ```
+
 ```{r}
 summary(influence.data$influenced_score)
 summary(influence.data$influencer_score)
 summary(influence.data$total_friends)
 summary(influence.data$total_reviews)
 ```
+
 ```{r}
 plot(influence.data$influenced_score, influence.data$influencer_score, main = "Influenced vs. Influencer Scores", xlab = "Influenced Score", ylab = "Influencer Score")
 plot(influence.data$total_friends, influence.data$total_reviews, main = "Friends vs. Reviews", xlab = "User's Number of Friends", ylab = "User's Number of Reviews")

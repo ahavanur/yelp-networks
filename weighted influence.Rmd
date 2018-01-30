@@ -1,0 +1,78 @@
+---
+title: "Weighted Influence Measures"
+author: "Apoorva Havanur, ahavanur"
+date: "1/25/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+new = read.csv("new_influence_score_pittsburgh.csv")
+business_categories = read.csv("business_categories_pittsburgh.csv")
+elite_members = read.csv("pittsburgh_elites.csv")
+```
+
+```{r}
+new$mu1 = new$f2/(new$f2+new$f3)
+new$mu2 = new$n/(new$n+new$k)
+new$is_elite = as.numeric(new$user_id %in% unique(elite_members$user_id))
+```
+
+```{r}
+elites = new[which(new$is_elite == 1),]
+non_elites = new[which(new$is_elite == 0),]
+
+all_users = sqldf("SELECT user_id, SUM(f1) as f1, SUM(f2) as f2, SUM(f3) as f3, SUM(m) as m, SUM(n) as n, SUM(k) as k FROM new GROUP BY 1")
+all_users$mu1 = all_users$f2/(all_users$f2 + all_users$f3)
+all_users$mu2 = all_users$n/(all_users$n + all_users$k)
+
+elite_users = sqldf("SELECT user_id, SUM(f1) as f1, SUM(f2) as f2, SUM(f3) as f3, SUM(m) as m, SUM(n) as n, SUM(k) as k FROM elites GROUP BY 1")
+elite_users$mu1 = elite_users$f2/(elite_users$f2 + elite_users$f3)
+elite_users$mu2 = elite_users$n/(elite_users$n + elite_users$k)
+
+non_elite_users = sqldf("SELECT user_id, SUM(f1) as f1, SUM(f2) as f2, SUM(f3) as f3, SUM(m) as m, SUM(n) as n, SUM(k) as k FROM non_elites GROUP BY 1")
+non_elite_users$mu1 = non_elite_users$f2/(non_elite_users$f2 + non_elite_users$f3)
+non_elite_users$mu2 = non_elite_users$n/(non_elite_users$n + non_elite_users$k)
+```
+
+```{r}
+plot(all_users$mu1, all_users$mu2, main = "All Users", xlab = "Friend Ratio", ylab = "Reviewer Ratio", pch = 20)
+plot(elite_users$mu1, elite_users$mu2, main = "Elite Users Only", xlab = "Friend Ratio", ylab = "Reviewer Ratio", pch = 20)
+plot(non_elite_users$mu1, non_elite_users$mu2, main = "Non Elite Users Only", xlab = "Friend Ratio", ylab = "Reviewer Ratio", pch = 20)
+```
+
+```{r}
+businesses = sqldf("SELECT business_id, SUM(f1) as f1, SUM(f2) as f2, SUM(f3) as f3, SUM(m) as m, SUM(n) as n, SUM(k) as k FROM new GROUP BY 1")
+businesses$mu1 = businesses$f2/(businesses$f2 + businesses$f3)
+businesses$mu2 = businesses$n/(businesses$n + businesses$k)
+
+businesses_elites = sqldf("SELECT business_id, SUM(f1) as f1, SUM(f2) as f2, SUM(f3) as f3, SUM(m) as m, SUM(n) as n, SUM(k) as k FROM elites GROUP BY 1")
+businesses_elites$mu1 = businesses_elites$f2/(businesses_elites$f2 + businesses_elites$f3)
+businesses_elites$mu2 = businesses_elites$n/(businesses_elites$n + businesses_elites$k)
+
+businesses_non_elites = sqldf("SELECT business_id, SUM(f1) as f1, SUM(f2) as f2, SUM(f3) as f3, SUM(m) as m, SUM(n) as n, SUM(k) as k FROM non_elites GROUP BY 1")
+businesses_non_elites$mu1 = businesses_non_elites$f2/(businesses_non_elites$f2 + businesses_non_elites$f3)
+businesses_non_elites$mu2 = businesses_non_elites$n/(businesses_non_elites$n + businesses_non_elites$k)
+```
+
+```{r}
+plot(businesses$mu1, businesses$mu2, main = "Per Business, All Users", xlab = "Friend Ratio", ylab = "Reviewer Ratio", pch = 20)
+plot(businesses_elites$mu1, businesses_elites$mu2, main = "Per Business, Elite Users", xlab = "Friend Ratio", ylab = "Reviewer Ratio", pch = 20)
+plot(businesses_non_elites$mu1, businesses_non_elites$mu2, main = "Per Business, Non-Elite Users", xlab = "Friend Ratio", ylab = "Reviewer Ratio", pch = 20)
+```
+
+```{r}
+popular_cats = business_categories[which(business_categories$category %in% names(sort(table(business_categories$category), decreasing = TRUE)[1:20])),]
+#overlapping categories? 
+#Restaurants
+restraunts = new[which(new$business_id %in% business_categories$business_id[which(business_categories$category == 'Restaurants')]),]
+restraunts$mu1 = restraunts$f2/(restraunts$f2+restraunts$f3)
+restraunts$mu2 = restraunts$n/(restraunts$n+restraunts$k)
+```
+
+#f1/number of friends, m/total people 
+#connected component of reviewers of same business, measurements of networks of subgraph 
+

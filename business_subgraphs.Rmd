@@ -10,8 +10,12 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
+library(sqldf)
 data = read.csv("./graphs/businesses/pittsburgh/pittsburgh.csv")
+categories = read.csv("./inputs/categories/business_categories_pittsburgh.csv")
 View(data)
+data = sqldf("SELECT * FROM categories LEFT OUTER JOIN data ON categories.business_id = data.business_id")
+data[,1] = NULL
 ```
 
 ```{r}
@@ -25,6 +29,11 @@ summary(data$clustering_coefficient)
 summary(as.numeric(data$diameter[which(data$diameter != "None")]))
 ```
 ```{r}
-
+data$largest_component_ratio = data$largest_connected_component/data$nodes
+hist(data$largest_component_ratio)
+plot(data$nodes, data$largest_component_ratio, pch = 20)
+plot(data$nodes, data$number_connected_components, pch = 20)
+plot(data$nodes, data$clustering_coefficient, pch = 20)
+plot(data$nodes, data$diameter, pch = 20)
 ```
 

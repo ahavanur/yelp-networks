@@ -1,0 +1,30 @@
+---
+title: "Business Subgraph Analysis"
+author: "Apoorva Havanur, ahavanur"
+date: "2/1/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+data = read.csv("./graphs/businesses/pittsburgh/pittsburgh.csv")
+View(data)
+```
+
+```{r}
+hist(data$number_connected_components)
+summary(data$number_connected_components)
+hist(data$largest_connected_component)
+summary(data$largest_connected_component)
+summary(data$nodes)
+summary(data$edges)
+summary(data$clustering_coefficient)
+summary(as.numeric(data$diameter[which(data$diameter != "None")]))
+```
+```{r}
+
+```
+

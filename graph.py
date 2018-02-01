@@ -125,30 +125,43 @@ def calculate_clique_score(G, businesses):
 
 def business_review_networks(G, businesses, path):
 	subgraph_dict = dict()
+	count = 0
+	print "started subgraphs"
 	for business in businesses:
 		patrons = businesses[business]
 		nodes = len(patrons)
 		if nodes > 1:
+			count += 1
 			subgraph = G.subgraph(patrons)
 			number_connected_components = nx.number_connected_components(subgraph)
 			subgraph_components = nx.connected_components(subgraph)
 			largest = max(get_component_length(subgraph_components,number_connected_components))
-			subgraph_dict[business] = [number_connected_components, largest]
-			di_subgraph = nx.DiGraph()
-			for patron in subgraph.nodes():
-				friends = subgraph.neighbors(patron)
-				patron_date = businesses[business][patron]
-				for friend in friends:
-					friend_date = businesses[business][friend]
-					min_date = min(patron_date, friend_date)
-					max_date = max(patron_date, friend_date)
-					if friend_date == min_date:
-						di_subgraph.add_edge(friend,patron)
-					else:
-						di_subgraph.add_edge(patron,friend)
-			name = os.getcwd() + path + business.replace('"', '') + "_patrons.gml"
-		#	nx.write_gml(subgraph, name)
-	return None
+			subgraph_dict[business] = [nodes, number_connected_components, largest]
+			# di_subgraph = nx.DiGraph()
+			# for patron in subgraph.nodes():
+			# 	friends = subgraph.neighbors(patron)
+			# 	patron_date = businesses[business][patron]
+			# 	for friend in friends:
+			# 		friend_date = businesses[business][friend]
+			# 		min_date = min(patron_date, friend_date)
+			# 		max_date = max(patron_date, friend_date)
+			# 		if friend_date == min_date:
+			# 			di_subgraph.add_edge(friend,patron)
+			# 		else:
+			# 			di_subgraph.add_edge(patron,friend)
+			# subgraph_dict[business].append(nx.dag_longest_path(di_subgraph))
+			subgraph_dict[business].append(nx.number_of_nodes(subgraph))
+			subgraph_dict[business].append(nx.number_of_edges(subgraph))
+			try:
+				subgraph_dict[business].append(nx.average_clustering(subgraph))
+			except:
+				subgraph_dict[business].append(0)
+			try: 
+				subgraph_largest_component = max(nx.connected_component_subgraphs(subgraph), key=len)
+				subgraph_dict[business].append(nx.diameter(subgraph_largest_component))
+			except:
+				subgraph_dict[business].append(None)
+	return subgraph_dict
 
 def ratio_output(user_scores, categories, outfile_name):
 	print "preparing csv file"
@@ -217,7 +230,7 @@ def main():
 	print "wrote graph"
 	businesses = generate_dict(reviews)
 	users = generate_dict(reviews, user_dict=True)
-	business_review_networks(G, businesses, business_graph_path)
+	subgraphs = business_review_networks(G, businesses, business_graph_path)
 	print len(businesses)
 	print len(users)
 	print "processed reviews"
@@ -228,6 +241,7 @@ def main():
 	print "calculated influence scores"
 	output(cliqueness, ["business_id", "cliqueness", "reviewers"], exn(clique_path, city, "csv"))
 	output(scores, ["user_id", "influenced_score", "influencer_score", "total_friends", "total_reviews"], exn(influence_path, city, "csv"))
+	output(subgraphs, ["business_id", "nodes", "number_connected_components", "largest_connected_component", "nodes", "edges", "clustering_coefficient", "diameter"], exn(business_graph_path, city, "csv"))
 	ratio_output(ratios, ["user_id", "business_id", "f1", "f2", "f3", "m", "n", "k"], exn(influence_ratio_path, city, "csv"))
 	return None 
 

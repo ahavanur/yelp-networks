@@ -7,6 +7,7 @@
 import networkx as nx
 from datetime import datetime
 import os
+import operator
 import glob 
 
 def exn(path, city, ftype):
@@ -48,7 +49,8 @@ def generate_dict(reviews, user_dict=False):
 				skey = u_id
 			date = datetime.strptime(review[2].strip(), "\"%Y-%m-%d 00:00:00\"")
 			if pkey not in result_dict:
-				result_dict[pkey] = {skey:date}
+				result_dict[pkey] = dict()
+				result_dict[pkey][skey] = date
 			else:
 				if skey in result_dict[pkey]:
 					result_dict[pkey][skey] = min(result_dict[pkey][skey], date)
@@ -128,7 +130,7 @@ def business_review_networks(G, businesses, path):
 	count = 0
 	print "started subgraphs"
 	for business in businesses:
-		patrons = businesses[business]
+		patrons = businesses[business].keys()
 		nodes = len(patrons)
 		if nodes > 1:
 			count += 1
@@ -162,6 +164,46 @@ def business_review_networks(G, businesses, path):
 			except:
 				subgraph_dict[business].append(None)
 	return subgraph_dict
+
+
+def business_reviewers_dynamic(G, businesses, path, city):
+	results = []
+	count = 0
+	for business in businesses:
+		count += 1 
+		patrons = businesses[business]
+		patrons = sorted(patrons.keys(), key = lambda x: businesses[business][x])
+		seen = [] 
+		size = len(patrons)
+		for patron in patrons:
+			seen.append(patron)
+			timestamp = businesses[business][patron]
+			subgraph = G.subgraph(seen)
+			nodes = nx.number_of_nodes(subgraph)
+			edges = nx.number_of_edges(subgraph)
+			subgraph_components = nx.connected_components(subgraph)
+			number_connected_components = nx.number_connected_components(subgraph)
+			largest = max(get_component_length(subgraph_components,number_connected_components))
+			try: 
+				average_clustering = nx.average_clustering(subgraph)
+			except:
+				average_clustering = 0
+			try: 
+				subgraph_diameter = nx.diameter(max(nx.connected_component_subgraphs(subgraph), key=len))
+			except:
+				subgraph_largest_component = None
+			result = [business, timestamp, len(seen), size, nodes, edges, number_connected_components, largest, average_clustering, subgraph_diameter]
+			results.append(result)
+		if count % 100 == 0:
+			print "businesses dynamically processed: " + str(count)
+	print "writing csv file"
+	with open(exn(path, city, "csv"), "wb") as outfile:
+		categories = ['business', 'timestamp', 'num_reviews', 'total_reviews', 'nodes', 'edges', 'number_connected_components', 'largest_connected_component', "clustering_coefficient", "diameter"]
+		outfile.write(','.join(categories)+"\n")
+		for result in results:
+			new = ",".join(str(v) for v in result)+ "\n"
+			outfile.write(new)
+	return None
 
 def ratio_output(user_scores, categories, outfile_name):
 	print "preparing csv file"
@@ -214,6 +256,7 @@ def main():
 	friend_path = "/inputs/friends/friends_"
 	city_graph_path = "/graphs/cities/network_"
 	business_graph_path = "/graphs/businesses/" + city + "/"
+	business_graph_dynamic_path = "/graphs/businesses/" + city + "/dynamic/"
 	component_length_path = "/outputs/components/component_length_"
 	influence_path = "/outputs/influence/influence_ratios_"
 	clique_path = "/outputs/clique/clique_"
@@ -231,6 +274,7 @@ def main():
 	businesses = generate_dict(reviews)
 	users = generate_dict(reviews, user_dict=True)
 	subgraphs = business_review_networks(G, businesses, business_graph_path)
+	business_reviewers_dynamic(G, businesses, business_graph_dynamic_path, city)
 	print len(businesses)
 	print len(users)
 	print "processed reviews"

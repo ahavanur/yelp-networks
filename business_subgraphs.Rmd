@@ -21,9 +21,9 @@ data[,1] = NULL
 ```{r}
 hist(data$number_connected_components)
 summary(data$number_connected_components)
-hist(data$largest_connected_component)
+hist(data$largest_connected_component[which(data$largest_connected_component <= 50)])
 summary(data$largest_connected_component)
-summary(data$nodes)
+hist(data$nodes)
 summary(data$edges)
 summary(data$clustering_coefficient)
 summary(as.numeric(data$diameter[which(data$diameter != "None")]))
@@ -31,9 +31,12 @@ summary(as.numeric(data$diameter[which(data$diameter != "None")]))
 ```{r}
 data$largest_component_ratio = data$largest_connected_component/data$nodes
 hist(data$largest_component_ratio)
-plot(data$nodes, data$largest_component_ratio, pch = 20)
+g10 = data[which(data$nodes >= 10),]
+plot(g10$nodes, g10$largest_component_ratio, pch = 20)
 plot(data$nodes, data$number_connected_components, pch = 20)
 plot(data$nodes, data$clustering_coefficient, pch = 20)
 plot(data$nodes, data$diameter, pch = 20)
 ```
+#regression model predicting connectedness of the graph
+#features: nodes, number of years, business type, more
 

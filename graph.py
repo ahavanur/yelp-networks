@@ -8,7 +8,6 @@ import networkx as nx
 from datetime import datetime
 import os
 import operator
-import glob 
 
 def exn(path, city, ftype):
 	return os.getcwd() + path + city + "." + ftype

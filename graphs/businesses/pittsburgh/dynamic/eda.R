@@ -10,6 +10,8 @@ data$prop_largest_component = data$largest_connected_component/data$nodes
 data$prop_reviews = data$num_reviews/data$total_reviews
 plot(data$prop_reviews, data$prop_largest_component)
 data$rounded_prop_reviews = round(data$prop_reviews,3)
+data$rounded_prop_largest_component = round(data$prop_largest_component,2)
+plot(data$rounded_prop_reviews, data$rounded_prop_largest_component)
 prop_review = data %>% group_by(rounded_prop_reviews) %>% summarise(mean_prop_largest_component = mean(prop_largest_component), 
                                                                     mean_component_size = mean(avg_component_size), 
                                                                     mean_num_components = mean(number_connected_components), 
@@ -32,7 +34,7 @@ plot(num_review$num_reviews, num_review$mean_diameter)
 time_deltas = data %>%
   group_by(business) %>%
   mutate(time_diff = c(NA, diff(timestamp)), coef_diff = c(NA, diff(clustering_coefficient)), component_difference = c(NA, diff(largest_connected_component)), prop_component_difference = c(NA, diff(prop_largest_component)))
-
+colnames(time_deltas)
 time_deltas$rounded_time = round(time_deltas$time_diff/30,2)
 plot(time_deltas$rounded_time, time_deltas$prop_largest_component)
 
@@ -40,6 +42,6 @@ agg_time_deltas = time_deltas %>% group_by(rounded_time) %>% summarise(
                                                                    mean_coef_diff = mean(coef_diff), 
                                                                    mean_component_diff = mean(component_difference),
                                                                    mean_prop_components_diff = mean(prop_component_difference))
-plot(agg_time_deltas$rounded_time, agg_time_deltas$mean_coef)
-plot(agg_time_deltas$rounded_time, agg_time_deltas$mean_component)
-plot(agg_time_deltas$rounded_time, agg_time_deltas$mean_prop_components)
+plot(agg_time_deltas$rounded_time, agg_time_deltas$mean_coef_diff)
+plot(agg_time_deltas$rounded_time, agg_time_deltas$mean_component_diff)
+plot(agg_time_deltas$rounded_time, agg_time_deltas$mean_prop_components_diff)

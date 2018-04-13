@@ -1,12 +1,42 @@
 mysql -e 'select * from yelp_db.friend' | sed  's/\t/,/g' > friends_small.tsv
 
+/usr/local/mysql-5.7.20-macos10.12-x86_64/data/yelp_db
+
+
 (*Pitt businesses*)
 SELECT COUNT(1) as num_businesses FROM (SELECT id, name, stars, review_count FROM business WHERE city = "Pittsburgh" and state = "PA") a; 
 
 (* reviews of those businesses*)
 SELECT r.id, r.stars, r.date, r.business_id, r.user_id, b.name, b.stars FROM review r INNER JOIN (SELECT id, name, stars, review_count FROM business WHERE city = "Pittsburgh" and state = "PA") b ON r.business_id = b.id;
 
-SELECT DISTINCT reviewers.user_id FROM (SELECT r.id, r.stars, r.date, r.business_id, r.user_id, b.name, b.stars as total_stars FROM review r INNER JOIN (SELECT id, name, stars, review_count FROM business WHERE city = "Pittsburgh" and state = "PA") b ON r.business_id = b.id) reviewers;
+
+SELECT r.id, r.stars, r.date, r.business_id, r.user_id, b.name, b.stars
+INTO OUTFILE 'reviews_pittsburgh.csv' 
+FIELDS TERMINATED BY ',' 
+OPTIONALLY ENCLOSED BY '"' 
+LINES TERMINATED BY '\n' 
+FROM review r INNER JOIN (SELECT id, name, stars, review_count FROM business WHERE city = "Pittsburgh" and state = "PA") b ON r.business_id = b.id;
+
+WITH reviewers AS (SELECT r.id, r.stars, r.date, r.business_id, r.user_id, b.name, b.stars as total_stars FROM review r INNER JOIN (SELECT id, name, stars, review_count FROM business WHERE city = "Pittsburgh" and state = "PA") b ON r.business_id = b.id)
+SELECT DISTINCT a.user_id, a.year as elite_year
+FROM (reviewers LEFT OUTER JOIN ((SELECT user_id, MIN(year) as year FROM elite_year GROUP BY user_id) elite)) a; 
+
+
+SELECT DISTINCT user_id, (CASE WHEN ISNULL(elite_year) THEN NULL ELSE 2018 - CAST(elite_year AS SIGNED) END) elite_years 
+INTO OUTFILE 'elites_pittsburgh.csv' 
+FIELDS TERMINATED BY ',' 
+OPTIONALLY ENCLOSED BY '"' 
+LINES TERMINATED BY '\n' 
+FROM ((
+
+(SELECT r.id, r.stars, r.date, r.business_id, r.user_id, b.name, b.stars as total_stars 
+	FROM review r 
+	INNER JOIN 
+	(SELECT id, name, stars, review_count FROM business WHERE city = "Pittsburgh" and state = "PA") b ON r.business_id = b.id) reviewers) 
+LEFT OUTER JOIN 
+	((SELECT user_id as elite_id, MIN(year) as elite_year 
+		FROM elite_years GROUP BY user_id) elite) 
+	ON reviewers.user_id = elite.elite_id);
 
 (* reviewer friends *)
 SELECT user_id, friend_id FROM friend WHERE user_id IN (SELECT DISTINCT reviewers.user_id FROM (SELECT r.id, r.stars, r.date, r.business_id, r.user_id, b.name, b.stars as total_stars FROM review r INNER JOIN (SELECT id, name, stars, review_count FROM business WHERE city = "Pittsburgh" and state = "PA") b ON r.business_id = b.id) reviewers);

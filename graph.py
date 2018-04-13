@@ -28,6 +28,8 @@ def generate_network(friends):
 			G.add_edge(vertices[0].strip(), vertices[1].strip())
 	return G
 
+
+
 def generate_dict(reviews, user_dict=False):
 	result_dict = dict()
 	reviews.seek(0) #resets cursor back to beginning of file
